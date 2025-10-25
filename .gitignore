@@ -1,0 +1,59 @@
+# Gradle
+.gradle/
+build/
+*/build/
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+.gradle/
+gradle-app.setting
+
+# Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Local configuration
+local.properties
+*.keystore
+*.jks
+*.pem
+
+# Generated files
+captures/
+outputs/
+signing/
+navigation.json
+*.apk
+*.aab
+*.ap_
+*.hprof
+
+# MacOS
+.DS_Store
+
+# Jetpack Compose preview caches
+.compose-cache/
+*.kotlin_module
+
+# Kotlin/Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+
+# Android Studio crash logs
+hs_err_pid*
+
+# Other build systems
+/.cxx/
+.externalNativeBuild/

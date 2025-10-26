@@ -28,7 +28,6 @@ class ConnectionViewModel @Inject constructor (
             is ConnectionIntent.UpdateIpAddress -> updateIpAddress(intent.ip)
             is ConnectionIntent.UpdatePort -> updatePort(intent.port)
             ConnectionIntent.ConnectClicked -> attemptConnection()
-            ConnectionIntent.ClearError -> clearError()
             ConnectionIntent.NavigationHandled -> handleNavigationComplete()
         }
     }

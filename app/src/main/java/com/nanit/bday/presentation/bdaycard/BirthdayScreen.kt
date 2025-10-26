@@ -1,5 +1,10 @@
 package com.nanit.bday.presentation.bdaycard
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,11 +18,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +35,7 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
@@ -34,7 +45,10 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.constraintlayout.compose.Dimension
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.nanit.bday.R
+import java.io.File
 
 
 @Composable
@@ -44,10 +58,86 @@ fun BirthdayScreen(
 ) {
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var showPhotoDialog by remember { mutableStateOf(false) }
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            viewModel.updatePhotoUri(it.toString())
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            photoUri?.let {
+                viewModel.updatePhotoUri(it.toString())
+            }
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            val file =
+                File(context.externalCacheDir, "temp_photo_${System.currentTimeMillis()}.jpg")
+            photoUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            photoUri?.let {
+                cameraLauncher.launch(it)
+            }
+        }
+    }
+
+
+    if (showPhotoDialog) {
+        PhotoSelectionDialog(
+            onGalleryClick = {
+                showPhotoDialog = false
+                galleryLauncher.launch("image/*")
+            },
+            onCameraClick = {
+                showPhotoDialog = false
+
+                when (PackageManager.PERMISSION_GRANTED) {
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) -> {
+                        val file = File(
+                            context.externalCacheDir,
+                            "temp_photo_${System.currentTimeMillis()}.jpg"
+                        )
+                        photoUri = FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            file
+                        )
+                        photoUri?.let {
+                            cameraLauncher.launch(it)
+                        }
+                    }
+
+                    else -> {
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                }
+            },
+            onDismiss = {
+                showPhotoDialog = false
+            }
+        )
+    }
 
     BirthdayScreen(
         uiState = uiState,
-        onPhotoClick = { }
+        onPhotoClick = { showPhotoDialog = true },
     )
 }
 
@@ -86,7 +176,6 @@ private fun BirthdayScreen(
                         .clickable { onPhotoClick() }
                 ) {
                     if (uiState.photoUri != null) {
-
                         AsyncImage(
                             model = uiState.photoUri,
                             contentDescription = "",
@@ -171,4 +260,32 @@ private fun BirthdayScreen(
     }
 
 
+}
+
+
+@Composable
+private fun PhotoSelectionDialog(
+    onGalleryClick: () -> Unit,
+    onCameraClick: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Select Photo")
+        },
+        text = {
+            Text("Choose how to add a photo")
+        },
+        confirmButton = {
+            TextButton(onClick = onGalleryClick) {
+                Text("Gallery")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCameraClick) {
+                Text("Camera")
+            }
+        }
+    )
 }

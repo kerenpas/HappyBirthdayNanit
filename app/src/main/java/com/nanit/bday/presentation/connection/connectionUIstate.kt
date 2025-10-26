@@ -18,7 +18,6 @@ sealed interface ConnectionIntent {
     data class UpdateIpAddress(val ip: String) : ConnectionIntent
     data class UpdatePort(val port: String) : ConnectionIntent
     object ConnectClicked : ConnectionIntent
-    object ClearError : ConnectionIntent
     object NavigationHandled : ConnectionIntent
 }
 

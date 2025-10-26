@@ -1,37 +1,42 @@
 package com.nanit.bday.data.repository
 
+import com.nanit.bday.data.dto.BirthdayDto
+import com.nanit.bday.data.toDomainModel
 import com.nanit.bday.data.source.WebSocketClient
+import com.nanit.bday.data.toDomain
 import com.nanit.bday.domain.BirthdayData
 import com.nanit.bday.domain.BirthdayTheme
 import com.nanit.bday.domain.ConnectionRepository
 import com.nanit.bday.domain.ConnectionState
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import java.util.Date
 import javax.inject.Inject
 
 class ConnectionRepositoryImpl @Inject constructor(private val webSocketClient: WebSocketClient): ConnectionRepository {
 
-    override fun connectAndFetchData(
+    override suspend fun connectAndFetchData(
         ipAddress: String,
         port: Int
-    ): Flow<Result<BirthdayData>> {
-        webSocketClient.connect(ipAddress, port)
+    ): Flow<ConnectionState> =
+        webSocketClient.connect(ipAddress, port).map{ it.toDomainModel() }
 
-        val data= BirthdayData(name = "keren", bDate = Date(), theme = BirthdayTheme.PELICAN)
-        return flowOf(Result.success(data));
-    }
+
 
     override fun getConnectionState(): Flow<ConnectionState> {
-        return flowOf(ConnectionState.Connected)
-
+        return webSocketClient.connectionState.map { it.toDomainModel() }
     }
-
 
     override fun observeCachedBirthdayData(): Flow<BirthdayData?> {
-        val data= BirthdayData(name = "keren", bDate = Date(), theme = BirthdayTheme.PELICAN)
-        return flowOf(data)
+        return webSocketClient.birthdayInfo.map { response ->
+            response?.let {
+                BirthdayDto(
+                    name = it.name,
+                    dob = it.dob,
+                    theme =it.theme
+                ).toDomain()
 
+            }
+        }
     }
-
 }

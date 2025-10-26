@@ -1,6 +1,7 @@
 package com.nanit.bday.presentation.connection
 
 // ConnectionViewModel.kt
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nanit.bday.domain.usecase.ConnectToServerUseCase
@@ -12,7 +13,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ConnectionViewModel @Inject constructor (
-    private val connectToServerUseCase: ConnectToServerUseCase
+    private val connectToServerUseCase: ConnectToServerUseCase,
+    private val observeBirthdayDataUseCase: com.nanit.bday.domain.usecase.ObserveBirthdayDataUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ConnectionUiState())
@@ -59,29 +61,36 @@ class ConnectionViewModel @Inject constructor (
             try {
                 val currentState = _uiState.value
 
-                _uiState.update { currentState -> currentState.copy(isConnecting = true) }
-
-
+                // Observe connection state
                 connectToServerUseCase.invoke(
                     currentState.ipAddress,
                     currentState.port.toIntOrNull() ?: 0
-                ).collect { result ->
-                    result.onSuccess {
-                        _uiState.update {
-                            it.copy(
-                                isConnecting = false,
-                                connectionResult = ConnectionResult.Success
-                            )
+                ).collect { connectionState ->
+                    Log.d("ConnectionViewModel", "Connection State: $connectionState")
+                    when (connectionState) {
+                        is com.nanit.bday.domain.ConnectionState.Connecting -> {
+                            _uiState.update { it.copy(isConnecting = true) }
                         }
-                        _sideEffects.send(ConnectionSideEffect.NavigateToHome)
-                    }.onFailure { error ->
-                        _uiState.update {
-                            it.copy(
-                                isConnecting = false,
-                                connectionResult = ConnectionResult.Error(
-                                    error.message ?: "Unknown error"
+                        is com.nanit.bday.domain.ConnectionState.Connected -> {
+                            _uiState.update {
+                                it.copy(
+                                    isConnecting = false,
+                                    connectionResult = ConnectionResult.Success
                                 )
-                            )
+                            }
+                            // Start observing birthday data from server
+                            observeBirthdayData()
+                        }
+                        is com.nanit.bday.domain.ConnectionState.Error -> {
+                            _uiState.update {
+                                it.copy(
+                                    isConnecting = false,
+                                    connectionResult = ConnectionResult.Error(connectionState.message)
+                                )
+                            }
+                        }
+                        else -> {
+                            // Handle other states if needed
                         }
                     }
                 }
@@ -92,7 +101,17 @@ class ConnectionViewModel @Inject constructor (
                         connectionResult = ConnectionResult.Error(e.message ?: "Unknown error")
                     )
                 }
+            }
+        }
+    }
 
+    private fun observeBirthdayData() {
+        viewModelScope.launch {
+            observeBirthdayDataUseCase.invoke().collect { birthdayData ->
+                if (birthdayData != null) {
+                    // Navigate to birthday card screen when data is available
+                    _sideEffects.send(ConnectionSideEffect.NavigateToHome)
+                }
             }
         }
     }

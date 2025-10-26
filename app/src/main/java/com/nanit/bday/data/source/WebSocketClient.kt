@@ -2,17 +2,13 @@ package com.nanit.bday.data.source
 
 import android.util.Log
 import io.ktor.client.*
-import io.ktor.client.engine.android.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.logging.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.Json
-import com.nanit.bday.data.dto.BirthdayDataResponse
+import com.nanit.bday.data.dto.BirthdayDto
 import com.nanit.bday.data.dto.ConnectionState
 import javax.inject.Inject
 
@@ -36,10 +32,10 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
-    private val _birthdayDataResponse = Channel<BirthdayDataResponse?>()
-    val birthdayInfo: Flow<BirthdayDataResponse?> = _birthdayDataResponse.receiveAsFlow()
+    private val _birthdayDataResponse = Channel<BirthdayDto?>()
+    val birthdayInfo: Flow<BirthdayDto?> = _birthdayDataResponse.receiveAsFlow()
 
-    suspend fun connect(ipAddress: String, port: Int = 8080) {
+    suspend fun connect(ipAddress: String, port: Int = 8080): StateFlow<ConnectionState> {
         _connectionState.value = ConnectionState.Connecting
 
         try {
@@ -55,9 +51,11 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
             // Start listening for incoming messages
             listenForMessages()
 
+
         } catch (e: Exception) {
             _connectionState.value = ConnectionState.Error(e.message ?: "Connection failed")
         }
+        return connectionState;
     }
 
     private suspend fun listenForMessages() {
@@ -86,7 +84,7 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
             if (message == "null") {
                 _birthdayDataResponse.send(null)
             } else {
-                val info = Json.decodeFromString<BirthdayDataResponse>(message)
+                val info = Json.decodeFromString<BirthdayDto>(message)
                 _birthdayDataResponse.send(info)
             }
         } catch (e: Exception) {

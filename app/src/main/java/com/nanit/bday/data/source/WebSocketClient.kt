@@ -9,22 +9,23 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import com.nanit.bday.data.dto.BirthdayDto
 import com.nanit.bday.data.dto.ConnectionState
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class WebSocketClient @Inject constructor(private val client: HttpClient) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var session: WebSocketSession? = null
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
-    private val _birthdayDataResponse = Channel<BirthdayDto?>()
-    val birthdayInfo: Flow<BirthdayDto?> = _birthdayDataResponse.receiveAsFlow()
+    private val _birthdayDataResponse = MutableStateFlow<BirthdayDto?>(null)
+    val birthdayInfo: StateFlow<BirthdayDto?> = _birthdayDataResponse.asStateFlow()
 
     suspend fun connect(ipAddress: String, port: Int = 8080): StateFlow<ConnectionState> {
         Log.d("WebSocketClient", "Connecting to $ipAddress:$port")
@@ -82,27 +83,18 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
     private suspend fun handleMessage(message: String) {
         try {
             if (message == "null") {
-                _birthdayDataResponse.send(null)
+                _birthdayDataResponse.value = null
             } else {
                 val info = Json.decodeFromString<BirthdayDto>(message)
-                _birthdayDataResponse.send(info)
+                _birthdayDataResponse.value = info
             }
         } catch (e: Exception) {
             // Log parsing error but don't crash
             Log.e("WebSocketClient", "Error parsing message: $message", e)
-            _birthdayDataResponse.send(null)
+            _birthdayDataResponse.value = null
         }
     }
 
-    suspend fun requestBirthdayInfo() {
-        session?.let { ws ->
-            try {
-                ws.send(Frame.Text("HappyBirthday"))
-            } catch (e: Exception) {
-                _connectionState.value = ConnectionState.Error("Failed to send message: ${e.message}")
-            }
-        }
-    }
 
     suspend fun disconnect() {
         try {

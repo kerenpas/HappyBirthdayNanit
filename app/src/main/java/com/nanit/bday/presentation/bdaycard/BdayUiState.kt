@@ -1,24 +1,24 @@
 package com.nanit.bday.presentation.bdaycard
 
+import com.nanit.bday.R
 import com.nanit.bday.domain.Age
 import com.nanit.bday.domain.AgeUnit
-import com.nanit.bday.domain.BirthdayData
 
 
-sealed class BdayUiState {
 
-    object Loading : BdayUiState()
 
-    data class Error(
-        val message: String
-    ) : BdayUiState()
-
-    data class Success(
-        val name: String,
-        val themeResources: ThemRes,
-        val age: Age,
-        val numberIconResource: Int,
-        val ageText: String,
-        val photoUri: String? = null
-    ) : BdayUiState()
-}
+data class BdayUiState(
+    val name: String = "Nanit",
+    val themeResources: ThemRes = ThemRes(
+        backgroundDrawable = R.drawable.bg_android_elephant,
+        borderedIcon = R.drawable.ic_baby_face_circle_yellow_bordered,
+        filledIcon = R.drawable.ic_baby_face_circle_yellow_filled,
+        smallIcon = R.drawable.ic_baby_face_yellow_small,
+        cameraIcon = R.drawable.ic_camera_yellow
+    ),
+    val age: Age = Age(0, AgeUnit.MONTHS),
+    val numberIconResource: Int = 0.toNumberIconResource(),
+    val ageText: String = "",
+    val photoUri: String? = null,
+    val error: String? = null
+)

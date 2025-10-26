@@ -7,7 +7,7 @@ data class BirthdayData(
     val bDate: Date,
     val theme: BirthdayTheme
 ) {
-    val age: Age get() = calculateAge(bDate)
+    val age: Age = calculateAge(bDate)
 }
 
 

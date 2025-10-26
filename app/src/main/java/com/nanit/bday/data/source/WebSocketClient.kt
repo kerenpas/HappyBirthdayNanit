@@ -101,6 +101,7 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
             session?.close()
             session = null
             _connectionState.value = ConnectionState.Disconnected
+            scope.cancel("WebSocket disconnected")
         } catch (e: Exception) {
             // Ignore close errors
         }

@@ -107,11 +107,8 @@ class ConnectionViewModel @Inject constructor (
 
     private fun observeBirthdayData() {
         viewModelScope.launch {
-            observeBirthdayDataUseCase.invoke().collect { birthdayData ->
-                if (birthdayData != null) {
-                    // Navigate to birthday card screen when data is available
+            observeBirthdayDataUseCase.invoke().filterNotNull().collect { birthdayData ->
                     _sideEffects.send(ConnectionSideEffect.NavigateToHome)
-                }
             }
         }
     }

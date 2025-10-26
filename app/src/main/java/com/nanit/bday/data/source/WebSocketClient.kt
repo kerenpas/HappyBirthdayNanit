@@ -5,29 +5,20 @@ import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
 import io.ktor.websocket.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import com.nanit.bday.data.dto.BirthdayDto
 import com.nanit.bday.data.dto.ConnectionState
 import javax.inject.Inject
 
 class WebSocketClient @Inject constructor(private val client: HttpClient) {
-   /* private val client = HttpClient(Android) {
-        install(WebSockets) {
-            maxFrameSize = Long.MAX_VALUE
-        }
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-            })
-        }
-        install(Logging) {
-            level = LogLevel.ALL
-        }
-    }*/
-
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var session: WebSocketSession? = null
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
@@ -36,6 +27,7 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
     val birthdayInfo: Flow<BirthdayDto?> = _birthdayDataResponse.receiveAsFlow()
 
     suspend fun connect(ipAddress: String, port: Int = 8080): StateFlow<ConnectionState> {
+        Log.d("WebSocketClient", "Connecting to $ipAddress:$port")
         _connectionState.value = ConnectionState.Connecting
 
         try {
@@ -46,16 +38,24 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
                 path = "/nanit"
             )
 
+            Log.d("WebSocketClient", "WebSocket session established: $session")
+
             _connectionState.value = ConnectionState.Connected
 
-            // Start listening for incoming messages
-            listenForMessages()
-
-
+            // Start listening for messages in a separate coroutine (non-blocking)
+            scope.launch {
+                try {
+                    listenForMessages()
+                } catch (e: Exception) {
+                    Log.e("WebSocketClient", "Error in message listener", e)
+                    _connectionState.value = ConnectionState.Error(e.message ?: "Connection lost")
+                }
+            }
         } catch (e: Exception) {
+            Log.e("WebSocketClient", "Connection failed", e)
             _connectionState.value = ConnectionState.Error(e.message ?: "Connection failed")
         }
-        return connectionState;
+        return connectionState
     }
 
     private suspend fun listenForMessages() {
@@ -115,6 +115,7 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
     }
 
     fun close() {
+        scope.cancel()
         client.close()
     }
 }

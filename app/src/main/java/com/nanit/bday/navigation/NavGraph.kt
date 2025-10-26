@@ -18,7 +18,8 @@ sealed class Screen(val route: String) {
 fun NavGraph(navController: NavHostController, modifier: Modifier) {
   NavHost(
         navController = navController,
-        startDestination = Screen.ConnectionScreen.route
+        startDestination = Screen.ConnectionScreen.route,
+        modifier = modifier
     ) {
 
       composable(Screen.ConnectionScreen.route) {

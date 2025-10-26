@@ -13,7 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun ConnectionScreen(
-    viewModel: ConnectionViewModel= hiltViewModel(),
+    viewModel: ConnectionViewModel = hiltViewModel(),
     onNavigateToBirthday: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

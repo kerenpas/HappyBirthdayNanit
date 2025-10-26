@@ -57,3 +57,4 @@ hs_err_pid*
 # Other build systems
 /.cxx/
 .externalNativeBuild/
+.claude/

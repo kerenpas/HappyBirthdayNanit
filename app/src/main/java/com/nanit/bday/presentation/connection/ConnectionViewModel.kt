@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nanit.bday.domain.usecase.ConnectToServerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -22,6 +23,9 @@ class ConnectionViewModel @Inject constructor (
 
     private val _sideEffects = Channel<ConnectionSideEffect>()
     val sideEffects = _sideEffects.receiveAsFlow()
+
+    private var connectionJob: Job? = null
+    private var birthdayObserverJob: Job? = null
 
     fun handleIntent(intent: ConnectionIntent) {
         when (intent) {
@@ -54,46 +58,55 @@ class ConnectionViewModel @Inject constructor (
     }
 
     private fun attemptConnection() {
-        viewModelScope.launch {
+        // Cancel any existing connection attempt
+        connectionJob?.cancel()
+
+        connectionJob = viewModelScope.launch {
             _uiState.update { it.copy(isConnecting = true, connectionResult = null) }
 
             try {
                 val currentState = _uiState.value
 
-                // Observe connection state
+                // Collect connection states until we reach a terminal state
                 connectToServerUseCase.invoke(
                     currentState.ipAddress,
                     currentState.port.toIntOrNull() ?: 0
-                ).collect { connectionState ->
-                    Log.d("ConnectionViewModel", "Connection State: $connectionState")
-                    when (connectionState) {
-                        is com.nanit.bday.domain.ConnectionState.Connecting -> {
-                            _uiState.update { it.copy(isConnecting = true) }
-                        }
-                        is com.nanit.bday.domain.ConnectionState.Connected -> {
-                            _uiState.update {
-                                it.copy(
-                                    isConnecting = false,
-                                    connectionResult = ConnectionResult.Success
-                                )
+                )
+                    .onEach { connectionState ->
+                        Log.d("ConnectionViewModel", "Connection State: $connectionState")
+                    }
+                    // Wait for the first terminal state (Connected or Error)
+                    .first { connectionState ->
+                        when (connectionState) {
+                            is com.nanit.bday.domain.ConnectionState.Connecting -> {
+                                _uiState.update { it.copy(isConnecting = true) }
+                                false // Keep waiting
                             }
-                            // Start observing birthday data from server
-                            observeBirthdayData()
-                        }
-                        is com.nanit.bday.domain.ConnectionState.Error -> {
-                            _uiState.update {
-                                it.copy(
-                                    isConnecting = false,
-                                    connectionResult = ConnectionResult.Error(connectionState.message)
-                                )
+                            is com.nanit.bday.domain.ConnectionState.Connected -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isConnecting = false,
+                                        connectionResult = ConnectionResult.Success
+                                    )
+                                }
+                                // Start observing birthday data from server
+                                observeBirthdayData()
+                                true // Terminal state reached, stop collecting
                             }
-                        }
-                        else -> {
-                            // Handle other states if needed
+                            is com.nanit.bday.domain.ConnectionState.Error -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isConnecting = false,
+                                        connectionResult = ConnectionResult.Error(connectionState.message)
+                                    )
+                                }
+                                true // Terminal state reached, stop collecting
+                            }
+                            else -> false // Keep waiting for other states
                         }
                     }
-                }
             } catch (e: Exception) {
+                Log.e("ConnectionViewModel", "Connection attempt failed", e)
                 _uiState.update {
                     it.copy(
                         isConnecting = false,
@@ -105,10 +118,17 @@ class ConnectionViewModel @Inject constructor (
     }
 
     private fun observeBirthdayData() {
-        viewModelScope.launch {
-            observeBirthdayDataUseCase.invoke().filterNotNull().collect { birthdayData ->
-                    _sideEffects.send(ConnectionSideEffect.NavigateToHome)
-            }
+        // Cancel any existing birthday observer
+        birthdayObserverJob?.cancel()
+
+        birthdayObserverJob = viewModelScope.launch {
+            // Wait for the first non-null birthday data, then navigate
+            observeBirthdayDataUseCase.invoke()
+                .filterNotNull()
+                .first() // Collect only the first non-null value, then stop
+
+            // Send navigation event after receiving birthday data
+            _sideEffects.send(ConnectionSideEffect.NavigateToHome)
         }
     }
 
@@ -137,5 +157,12 @@ class ConnectionViewModel @Inject constructor (
     private fun isValidPort(port: String): Boolean {
         val portNum = port.toIntOrNull() ?: return false
         return portNum in 1..65535
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Cancel any ongoing operations when ViewModel is destroyed
+        connectionJob?.cancel()
+        birthdayObserverJob?.cancel()
     }
 }

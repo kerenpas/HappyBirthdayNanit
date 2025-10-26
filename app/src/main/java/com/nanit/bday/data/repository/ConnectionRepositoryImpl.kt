@@ -27,16 +27,6 @@ class ConnectionRepositoryImpl @Inject constructor(private val webSocketClient: 
         return webSocketClient.connectionState.map { it.toDomainModel() }
     }
 
-    override fun observeCachedBirthdayData(): Flow<BirthdayData?> {
-        return webSocketClient.birthdayInfo.map { response ->
-            response?.let {
-                BirthdayDto(
-                    name = it.name,
-                    dob = it.dob,
-                    theme =it.theme
-                ).toDomain()
+    override fun observeCachedBirthdayData(): Flow<BirthdayData?> = webSocketClient.birthdayInfo.map { it?.toDomain() }
 
-            }
-        }
-    }
 }

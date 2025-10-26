@@ -7,6 +7,7 @@ import io.ktor.http.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
@@ -21,6 +22,7 @@ import javax.inject.Singleton
 class WebSocketClient @Inject constructor(private val client: HttpClient) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var session: WebSocketSession? = null
+    private var messageListenerJob: Job? = null
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
@@ -28,6 +30,9 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
     val birthdayInfo: StateFlow<BirthdayDto?> = _birthdayDataResponse.asStateFlow()
 
     suspend fun connect(ipAddress: String, port: Int = 8080): StateFlow<ConnectionState> {
+        // Cancel any existing connection first
+        disconnect()
+
         Log.d("WebSocketClient", "Connecting to $ipAddress:$port")
         _connectionState.value = ConnectionState.Connecting
 
@@ -44,7 +49,7 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
             _connectionState.value = ConnectionState.Connected
 
             // Start listening for messages in a separate coroutine (non-blocking)
-            scope.launch {
+            messageListenerJob = scope.launch {
                 try {
                     listenForMessages()
                 } catch (e: Exception) {
@@ -98,11 +103,20 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
 
     suspend fun disconnect() {
         try {
+            // Cancel the message listener job
+            messageListenerJob?.cancel()
+            messageListenerJob = null
+
+            // Close the WebSocket session
             session?.close()
             session = null
-            _connectionState.value = ConnectionState.Disconnected
-            scope.cancel("WebSocket disconnected")
+
+            // Update state only if not already in error state
+            if (_connectionState.value !is ConnectionState.Error) {
+                _connectionState.value = ConnectionState.Disconnected
+            }
         } catch (e: Exception) {
+            Log.e("WebSocketClient", "Error during disconnect", e)
             // Ignore close errors
         }
     }

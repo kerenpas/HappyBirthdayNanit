@@ -4,32 +4,34 @@ import com.nanit.bday.domain.BirthdayTheme
 import com.nanit.bday.R
 import com.nanit.bday.domain.Age
 import com.nanit.bday.domain.AgeUnit
-import com.nanit.bday.presentation.bdaycard.ThemRes
 
 fun BirthdayTheme.toThemeResources(): ThemRes {
     return when (this) {
         BirthdayTheme.PELICAN -> ThemRes(
             backgroundDrawable = R.drawable.bg_android_pelican,
+            backgroundColor = R.color.background_blue,
             borderedIcon = R.drawable.ic_baby_face_circle_blue_bordered,
             filledIcon = R.drawable.ic_baby_face_circle_blue_filled,
             smallIcon = R.drawable.ic_baby_face_blue_small,
-            cameraIcon = R.drawable.ic_camera_blue
+            cameraIcon = R.drawable.ic_camera_blue,
         )
 
         BirthdayTheme.FOX -> ThemRes(
             backgroundDrawable = R.drawable.bg_fox,
+            backgroundColor = R.color.background_green,
             borderedIcon = R.drawable.ic_baby_face_circle_green_bordered,
             filledIcon = R.drawable.ic_baby_face_circle_green_filled,
             smallIcon = R.drawable.ic_baby_face_green_small,
-            cameraIcon = R.drawable.ic_camera_green
+            cameraIcon = R.drawable.ic_camera_green,
         )
 
         BirthdayTheme.ELEPHANT -> ThemRes(
             backgroundDrawable = R.drawable.bg_android_elephant,
+            backgroundColor = R.color.background_yellow,
             borderedIcon = R.drawable.ic_baby_face_circle_yellow_bordered,
             filledIcon = R.drawable.ic_baby_face_circle_yellow_filled,
             smallIcon = R.drawable.ic_baby_face_yellow_small,
-            cameraIcon = R.drawable.ic_camera_yellow
+            cameraIcon = R.drawable.ic_camera_yellow,
         )
     }
 }

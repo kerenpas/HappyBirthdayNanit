@@ -11,6 +11,7 @@ data class BdayUiState(
     val name: String = "Nanit",
     val themeResources: ThemRes = ThemRes(
         backgroundDrawable = R.drawable.bg_android_elephant,
+        backgroundColor = R.color.background_yellow,
         borderedIcon = R.drawable.ic_baby_face_circle_yellow_bordered,
         filledIcon = R.drawable.ic_baby_face_circle_yellow_filled,
         smallIcon = R.drawable.ic_baby_face_yellow_small,

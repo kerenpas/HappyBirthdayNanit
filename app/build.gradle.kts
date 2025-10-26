@@ -58,8 +58,15 @@ dependencies {
 
 
     implementation(libs.hilt.android)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.constraintlayout)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+
+
+    implementation(libs.androidx.constraintlayout.compose)
+
+    implementation(libs.coil.compose)
 
 
     //ktor

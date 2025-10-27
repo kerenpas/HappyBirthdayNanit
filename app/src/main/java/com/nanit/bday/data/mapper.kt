@@ -1,7 +1,7 @@
 package com.nanit.bday.data
 
 import com.nanit.bday.data.dto.BirthdayDto
-import  com.nanit.bday.data.dto.ConnectionState
+import com.nanit.bday.data.dto.ConnectionState
 import com.nanit.bday.domain.BirthdayData
 import com.nanit.bday.domain.BirthdayTheme
 import java.util.Date

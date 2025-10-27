@@ -20,7 +20,7 @@ import io.ktor.serialization.kotlinx.json.json
 import javax.inject.Singleton
 
 @Module
-@InstallIn(SingletonComponent::class) // Or another component if more appropriate
+@InstallIn(SingletonComponent::class)
 object DataModule {
 
     @Provides
@@ -46,15 +46,12 @@ object DataModule {
     @Provides
     @Singleton
     fun provideWebSocketClient(httpClient: HttpClient): WebSocketClient {
-
         return WebSocketClient(httpClient)
     }
-
 
     @Provides
     @Singleton
     fun provideConnectionRepository(webSocketClient: WebSocketClient): ConnectionRepository {
-         return ConnectionRepositoryImpl(webSocketClient)
+        return ConnectionRepositoryImpl(webSocketClient)
     }
-
 }

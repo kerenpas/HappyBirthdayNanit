@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nanit.bday.domain.BirthdayData
-import com.nanit.bday.domain.BirthdayTheme
 import com.nanit.bday.domain.usecase.ObserveBirthdayDataUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -17,6 +17,7 @@ ktor = "3.2.3"
 constraintlayout = "1.0.1"
 constraintlayoutVersion = "2.2.1"
 coil = "2.7.0"
+appcompatResources = "1.7.1"
 
 
 [libraries]
@@ -60,6 +61,7 @@ ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayoutVersion" }
+androidx-appcompat-resources = { group = "androidx.appcompat", name = "appcompat-resources", version.ref = "appcompatResources" }
 
 
 [plugins]

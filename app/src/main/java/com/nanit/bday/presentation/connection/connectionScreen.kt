@@ -64,7 +64,6 @@ fun ConnectionScreen(
                     viewModel.handleIntent(ConnectionIntent.UpdatePort(it))
                 },
                 label = { Text("Port") },
-                placeholder = { Text("8080") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 enabled = !uiState.isConnecting,

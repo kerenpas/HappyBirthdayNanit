@@ -29,7 +29,7 @@ class WebSocketClient @Inject constructor(private val client: HttpClient) {
     private val _birthdayDataResponse = MutableStateFlow<BirthdayDto?>(null)
     val birthdayInfo: StateFlow<BirthdayDto?> = _birthdayDataResponse.asStateFlow()
 
-    suspend fun connect(ipAddress: String, port: Int = 8080): StateFlow<ConnectionState> {
+    suspend fun connect(ipAddress: String, port: Int): StateFlow<ConnectionState> {
         // Cancel any existing connection first
         disconnect()
 

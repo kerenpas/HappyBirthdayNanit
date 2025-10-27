@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.constraintlayout)
+    implementation(libs.androidx.appcompat.resources)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 

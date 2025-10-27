@@ -2,9 +2,12 @@ package com.nanit.bday.presentation.bdaycard
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.drawable.VectorDrawable
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,10 +40,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,6 +55,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.nanit.bday.R
 import java.io.File
+import kotlin.math.sqrt
 
 
 @Composable
@@ -148,12 +155,46 @@ private fun BirthdayScreen(
     onPhotoClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+
+
+    val cameraSize = remember(uiState.themeResources.cameraIcon, context, density) {
+        (AppCompatResources.getDrawable(context, uiState.themeResources.cameraIcon) as? VectorDrawable)
+            ?.let { with(density) { it.intrinsicWidth.toDp() } } ?: 0.dp
+    }
+
+    val babySize = remember(uiState.themeResources.borderedIcon, context, density) {
+        (AppCompatResources.getDrawable(context, uiState.themeResources.borderedIcon) as? VectorDrawable)
+            ?.let { with(density) { it.intrinsicWidth.toDp() } } ?: 0.dp
+    }
+
+    val radius = remember(babySize) { babySize / 2 }
+
+    val cameraOffset = remember(babySize, cameraSize, density) {
+        derivedStateOf {
+            val rPx = with(density) { radius.toPx() }
+            val camPx = with(density) { cameraSize.toPx() }
+
+            // 45° placement on the ring:
+            val hyp = rPx * kotlin.math.sqrt(2.0)
+            val hypSmall = hyp - rPx
+            val side = (hypSmall / kotlin.math.sqrt(2.0)).toFloat()
+
+            val xPx = with(density) { (babySize - side.toDp()).toPx() } - camPx / 2f
+            val yPx = with(density) { side.toDp().toPx() } - camPx / 2f
+            IntOffset(xPx.toInt(), yPx.toInt())
+        }
+    }
+
     Box(
         modifier = modifier.fillMaxSize()
     ) {
 
         ConstraintLayout(
-            modifier = Modifier.fillMaxSize().background(color = colorResource (id = uiState.themeResources.backgroundColor))
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = colorResource(id = uiState.themeResources.backgroundColor))
         ) {
             Image(
                 painter = painterResource(id = uiState.themeResources.backgroundDrawable),
@@ -195,8 +236,10 @@ private fun BirthdayScreen(
                         painter = painterResource(id = uiState.themeResources.cameraIcon),
                         contentDescription = "Camera",
                         modifier = Modifier
-                            .align(Alignment.Center)
-                            .offset(x = 70.dp, y = (-70).dp)
+                            .size(cameraSize)
+                            .offset {
+                                cameraOffset.value
+                            }
                     )
                 }
 

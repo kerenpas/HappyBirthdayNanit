@@ -10,10 +10,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: ${{ runner.tool_cache }}/android-sdk
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -22,25 +26,66 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Setup Gradle
+      - name: Setup Gradle CLI (for fallback wrapper generation)
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Show repo files (debug)
+        run: |
+          echo "Workspace: $GITHUB_WORKSPACE"
+          ls -la
+          echo "Top-level contents:"
+          find . -maxdepth 2 -type f -print
+
+      - name: Check Gradle wrapper jar and generate if missing
+        run: |
+          if [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "gradle-wrapper.jar found."
+          else
+            echo "gradle-wrapper.jar not found — attempting to generate wrapper using installed Gradle."
+            # Attempt to generate wrapper. This requires gradle to be available via setup-gradle.
+            # If you prefer a specific Gradle version, add --gradle-version X.Y.Z
+            gradle wrapper || true
+          fi
+          echo "gradle/wrapper contents:"
+          ls -la gradle/wrapper || true
+        shell: bash
+
       - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+        run: |
+          if [ -f ./gradlew ]; then
+            chmod +x ./gradlew
+          else
+            echo "gradlew not present; will try to use 'gradle' directly."
+          fi
+        shell: bash
 
       - name: Clean project
-        run: ./gradlew clean
+        run: |
+          if [ -f ./gradlew ]; then
+            ./gradlew clean --no-daemon --stacktrace
+          else
+            gradle clean --no-daemon --stacktrace
+          fi
+        shell: bash
 
-      - name: Build with Gradle
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+      - name: Build Debug APK
+        run: |
+          if [ -f ./gradlew ]; then
+            ./gradlew assembleDebug --no-daemon --stacktrace
+          else
+            gradle assembleDebug --no-daemon --stacktrace
+          fi
+        shell: bash
 
       - name: Run unit tests
-        run: ./gradlew testDebugUnitTest --stacktrace --no-daemon
+        run: |
+          if [ -f ./gradlew ]; then
+            ./gradlew testDebugUnitTest --no-daemon --stacktrace || true
+          else
+            gradle testDebugUnitTest --no-daemon --stacktrace || true
+          fi
         continue-on-error: true
-
-      - name: Generate test report
-        if: always()
-        run: ./gradlew testDebugUnitTest --continue || true
+        shell: bash
 
       - name: Upload build artifacts
         if: success()

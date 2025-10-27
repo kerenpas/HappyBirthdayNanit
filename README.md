@@ -12,3 +12,16 @@ If in future UX requirements the desired angle changes (for example, placing the
 I did implement a general version that calculates the position for any arbitrary angle using trigonometric functions (cos/sin),
 but the result wasn’t perfectly aligned visually.
 I believe the small offset stems from accumulated rounding errors — converting between dp ↔ px and rounding non-integer cos/sin results to whole numbers or integer multiplications.
+
+Unit Test
+
+Added  git hub action to
+Runs all unit tests automatically — including your three test files under src/test/java/...
+
+PresentationMappersTest
+
+CalculateAgeTest
+
+DataMappersTest
+
+.
